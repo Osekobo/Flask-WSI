@@ -21,8 +21,9 @@ def products():
       error = {"error" : "Ensure  all fields are set"} 
       return jsonify(error), 400
     else:
-     products_list.append(data)
-     return jsonify(data), 201
+    #  products_list.append(data)
+    #  return jsonify(data), 201
+      return jsonify({'message': "Product added successfully!"})
   else:
     error = {"error" : "Method not allowed"}
     return jsonify(error), 405
