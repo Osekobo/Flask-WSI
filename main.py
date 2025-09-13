@@ -15,6 +15,7 @@ def home():
 def products():
   if request.method == "GET":
     return jsonify(products_list), 200
+  
   elif request.method == "POST":
     data = dict(request.get_json())
     if "name" not in data.keys()  or "buying_price" not in  data.keys() or "selling_price" not in data.keys():
