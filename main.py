@@ -38,7 +38,9 @@ def sales():
     return jsonify(sales_list), 200
   elif request.method == "POST":
     data = dict(request.get_json())
-    if "product_id" not in data.keys()   or "quantity" not in  data.keys() or "created_at" not in data.keys():
+    if "created_at" not in data:
+      data["created_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    if "product_id" not in data.keys()   or "quantity" not in  data.keys():
       error = {"error" : "Ensure  all fields are set and with correct input types"} 
       return jsonify(error), 400
     else:
@@ -55,8 +57,9 @@ def purchases():
     return jsonify(purchases_list), 200
   elif request.method == "POST":
     data = dict(request.get_json())
-    if "product_id" not in data.keys()   or "quantity" not in  data.keys() or "created_at" not in data.keys():
+    if "created_at" not in data:
       data["created_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    if "product_id" not in data.keys()   or "quantity" not in  data.keys():
       error = {"error" : "Ensure  all fields are set and with correct input types"} 
       return jsonify(error), 400
     else:
