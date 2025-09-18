@@ -1,6 +1,14 @@
 from flask import Flask, jsonify, request
 from datetime import datetime
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+import sentry_sdk
+
+sentry_sdk.init(
+    dsn="https://d094d4f6e41f019d48dc3cfd2d7f37df@o4510040510431234.ingest.us.sentry.io/4510040789811200",
+    # Add data like request headers and IP for users,
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+)
 
 app = Flask(__name__)
 
@@ -22,7 +30,7 @@ def home():
 
 @app.route("/api/register", methods=["POST"])
 def register():
-    data = request.get_json()
+    data = request.get_jsony()
     if "name" not in data.keys() or "email" not in data.keys() or "password" not in data.keys():
         error = {"error": "Ensure all fields are filled"}
         return jsonify(error), 400
@@ -55,7 +63,7 @@ def get_users():
     return jsonify(users_list), 200
 
 @app.route("/api/products", methods = ["GET", "POST"])
-@jwt_required
+@jwt_required()
 def products():
   if request.method == "GET":
     # retrive products
@@ -75,7 +83,7 @@ def products():
   
 # sales - product_id(int), quantity(float), created_at(datetime_now)
 @app.route("/api/sales", methods = ["GET", "POST"])
-@jwt_required
+@jwt_required()
 def sales():
   if request.method == "GET":
     return jsonify(sales_list), 200
@@ -95,7 +103,7 @@ def sales():
 
 # purchases - product_id(int), quantity(float), created_at(datetime_now)
 @app.route("/api/purchases", methods = ["GET", "POST"])
-@jwt_required
+@jwt_required()
 def purchases():
   if request.method == "GET":
     return jsonify(purchases_list), 200
