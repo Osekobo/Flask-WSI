@@ -21,7 +21,6 @@ purchase_list = []
 sales_list = []
 purchases_list = []
 users_list = []
-
 @app.route("/", methods=['GET'])
 def home():
   res = {"Flask API Version" : "1.0"}
