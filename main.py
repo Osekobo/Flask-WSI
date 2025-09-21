@@ -26,7 +26,6 @@ def home():
   res = {"Flask API Version" : "1.0"}
   return jsonify(res), 200
 
-
 @app.route("/api/register", methods=["POST"])
 def register():
     data = request.get_jsony()
