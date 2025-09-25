@@ -14,12 +14,12 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True
 db.init_app(app)
 
 
-# # sentry_sdk.init(
-#     dsn="https://d094d4f6e41f019d48dc3cfd2d7f37df@o4510040510431234.ingest.us.sentry.io/4510040789811200",
-#     # Add data like request headers and IP for users,
-#     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-#     send_default_pii=True,
-# )
+sentry_sdk.init(
+    dsn="https://d094d4f6e41f019d48dc3cfd2d7f37df@o4510040510431234.ingest.us.sentry.io/4510040789811200",
+    # Add data like request headers and IP for users,
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
+)
 
 jwt = JWTManager(app)
 
@@ -47,7 +47,7 @@ def register():
         users_list.append(data)
         # create JWT token
         token = create_access_token(identity=data["email"])
-        return jsonify({"token": token}), 201
+        return jsonify({"message": "User registered successfully", "token": token}), 201
 
 
 @app.route("/api/login", methods=["POST"])
@@ -72,6 +72,13 @@ def login():
 @jwt_required
 def get_users():
     users = User.query.all()
+    for u in users:
+      users_list.append({
+          "id":u.id,
+          "name":u.name,
+          "email":u.email,
+           "created_at": u.created_at.strftime("%Y-%m-%d %H:%M:%S") if hasattr(u, "created_at") else None
+      })
     return jsonify(users), 200
 
 
