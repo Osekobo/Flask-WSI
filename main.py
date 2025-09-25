@@ -2,12 +2,13 @@ from flask import Flask, jsonify, request
 from datetime import datetime
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 import sentry_sdk
-from models import db, Product, Sale
+from models import db, Product, Sale, User, Purchase
+
 app = Flask(__name__)
 # Change this to a random secret key in production
 app.config['JWT_SECRET_KEY'] = 'hgyutd576uyfutu'
-# app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:12345@localhost:5432/Flask_API"
-app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:12039@localhost:5432/Flask_API"
+app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:12345@localhost:5432/flask_api"
+app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:12039@localhost:5432/flask_api"
 
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True
 db.init_app(app)
@@ -25,15 +26,14 @@ jwt = JWTManager(app)
 products_list = []
 sales_list = []
 purchase_list = []
-sales_list = []
-purchases_list = []
-users_list = []
+sales_list = [] # define models and commit to database
+purchases_list = [] # define models and commit to database
+users_list = []  # define models and commit to database
 
 
 @app.route("/", methods=['GET'])
 def home():
-    res = {"Flask API Version": "1.0"}
-    return jsonify(res), 200
+    return jsonify({"Flask API Version": "1.0"}), 200
 
 
 @app.route("/api/register", methods=["POST"])
@@ -68,9 +68,11 @@ def login():
         return jsonify(error), 401
 
 
-@app.route("/api/users")
+@app.route("/api/users", methods=["GET"])
+@jwt_required
 def get_users():
-    return jsonify(users_list), 200
+    users = User.query.all()
+    return jsonify(users), 200
 
 
 @app.route("/api/products", methods=["GET", "POST"])
@@ -90,7 +92,7 @@ def products():
             return jsonify(error), 400
         else:
             # products_list.append(data)
-            prod = Product(name=data["name"], buying_price=data["buying_price"], selling_price=data["buying_price"])
+            prod = Product(name=data["name"], buying_price=data["buying_price"], selling_price=data["selling_price"])
             db.session.add(prod)
             db.session.commit()
             data["id"] = prod.id
@@ -101,8 +103,6 @@ def products():
         return jsonify(error), 405
 
 # sales - product_id(int), quantity(float), created_at(datetime_now)
-
-
 @app.route("/api/sales", methods=["GET", "POST"])
 @jwt_required()
 def sales():
