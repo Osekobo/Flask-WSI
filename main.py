@@ -23,13 +23,10 @@ sentry_sdk.init(
 
 jwt = JWTManager(app)
 
-products_list = []
-sales_list = []
-purchase_list = []
-sales_list = [] # define models and commit to database
-purchases_list = [] # define models and commit to database
-users_list = []  # define models and commit to database
-
+purchases_list=[]
+sales_list=[]
+products_list=[]
+users_list=[]
 
 @app.route("/", methods=['GET'])
 def home():
@@ -44,11 +41,12 @@ def register():
         return jsonify(error), 400
         # Elif expected to check mail is valid/exists, password is long, fields not empty
     else:
-        users_list.append(data)
-        # create JWT token
+        usr = User(username=data["name"], email = data["email"], password=data["password"])
+        db.session.add(usr)
+        db.session.commit()
+        data["id"] = usr.id
         token = create_access_token(identity=data["email"])
         return jsonify({"message": "User registered successfully", "token": token}), 201
-
 
 @app.route("/api/login", methods=["POST"])
 def login():
@@ -57,16 +55,13 @@ def login():
         error = {"error": "Ensure all fields are filled"}
         return jsonify(error), 400
     else:
-        for user in users_list:
-            if user["email"] == data["email"] and user["password"] == data["password"]:
-                # create JWT token
-                token = create_access_token(identity=data["email"])
-                return jsonify({"token": token}), 200
-            else:
-                pass
-        error = {"error": "Invalid email or password"}
-        return jsonify(error), 401
-
+        usr = User.query.filter_by(email=data["email"], password=data["password"]).first()
+        if usr is None:
+            error = {"error": "Invalid email or password"}
+            return jsonify(error), 401
+        else:
+            token = create_access_token(identity=data["email"])
+            return jsonify({"token":token}), 200
 
 @app.route("/api/users", methods=["GET"])
 @jwt_required
