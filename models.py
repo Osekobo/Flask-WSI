@@ -17,7 +17,7 @@ class Sale(db.Model):
   quantity = db.Column(db.Float, nullable =False)
   product_id = db.Column(db.Integer, db.ForeignKey("products.id"), nullable = False)
   created_at = db.Column(db.DateTime, default=datetime.utcnow)
-  product = db.relationship("product", backref = db.backref("sales", lazy=True))
+  product = db.relationship("Product", backref = db.backref("sales", lazy=True))
 
 class Purchase(db.Model):
   __tablename__ = "purchases"
@@ -25,7 +25,7 @@ class Purchase(db.Model):
   quantity = db.Column(db.Float, nullable =False)
   product_id = db.Column(db.Integer, db.ForeignKey("products.id"), nullable = False)
   created_at = db.Column(db.DateTime, default=datetime.utcnow)
-  product = db.relationship("product", backref = db.backref("purchases", lazy=True))
+  product = db.relationship("Product", backref = db.backref("purchases", lazy=True))
 
 class User(db.Model):
   __tablename__ = "users"
@@ -33,3 +33,5 @@ class User(db.Model):
   name = db.Column(db.String(256), nullable=False)
   email = db.Column(db.String(256), unique = True, nullable=False)
   password = db.Column(db.String(256), nullable=False) # hashed
+
+# Sales and purchases

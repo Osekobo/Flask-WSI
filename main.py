@@ -7,10 +7,9 @@ from models import db, Product, Sale, User, Purchase
 app = Flask(__name__)
 # Change this to a random secret key in production
 app.config['JWT_SECRET_KEY'] = 'hgyutd576uyfutu'
-app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:12345@localhost:5432/flask_api"
 app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:12039@localhost:5432/flask_api"
 
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db.init_app(app)
 
 
@@ -25,8 +24,6 @@ jwt = JWTManager(app)
 
 purchases_list=[]
 sales_list=[]
-products_list=[]
-users_list=[]
 
 @app.route("/", methods=['GET'])
 def home():
@@ -40,8 +37,11 @@ def register():
         error = {"error": "Ensure all fields are filled"}
         return jsonify(error), 400
         # Elif expected to check mail is valid/exists, password is long, fields not empty
+    elif User.query.filter_by(email=data["email"]).first() is not None:
+        error = {"error" : "User with that email already exists"}
+        return jsonify(error), 409
     else:
-        usr = User(username=data["name"], email = data["email"], password=data["password"])
+        usr = User(name=data["name"], email = data["email"], password=data["password"])
         db.session.add(usr)
         db.session.commit()
         data["id"] = usr.id
@@ -49,11 +49,10 @@ def register():
         return jsonify({"message": "User registered successfully", "token": token}), 201
 
 @app.route("/api/login", methods=["POST"])
-def login():
+def login(): 
     data = request.get_json()
     if "email" not in data.keys() or "password" not in data.keys():
-        error = {"error": "Ensure all fields are filled"}
-        return jsonify(error), 400
+        return jsonify({"error": "Ensure all fields are filled"}), 400
     else:
         usr = User.query.filter_by(email=data["email"], password=data["password"]).first()
         if usr is None:
@@ -67,14 +66,15 @@ def login():
 @jwt_required
 def get_users():
     users = User.query.all()
+    users_list=[]
     for u in users:
       users_list.append({
           "id":u.id,
-          "name":u.name,
+          "name":u.username,
           "email":u.email,
            "created_at": u.created_at.strftime("%Y-%m-%d %H:%M:%S") if hasattr(u, "created_at") else None
       })
-    return jsonify(users), 200
+    return jsonify(users_list), 200
 
 
 @app.route("/api/products", methods=["GET", "POST"])
@@ -82,6 +82,7 @@ def get_users():
 def products():
     if request.method == "GET":
         products = Product.query.all()
+        products_list=[]
         for prod in products:
           data={"id":prod.id,"name":prod.name,"buying_price":prod.buying_price,"selling_price":prod.selling_price}
           products_list.append(data)
