@@ -10,6 +10,9 @@ class Product(db.Model):
   name = db.Column(db.String(256), nullable = False)
   buying_price = db.Column(db.Float, nullable = False)
   selling_price = db.Column(db.Float, nullable = False)  
+  created_at = db.Column(db.DateTime, default=datetime.utcnow)
+  updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 
 class Sale(db.Model):
   __tablename__ = "sales"
@@ -18,6 +21,9 @@ class Sale(db.Model):
   product_id = db.Column(db.Integer, db.ForeignKey("products.id"), nullable = False)
   created_at = db.Column(db.DateTime, default=datetime.utcnow)
   product = db.relationship("Product", backref = db.backref("sales", lazy=True))
+  created_at = db.Column(db.DateTime, default=datetime.utcnow)
+  updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 
 class Purchase(db.Model):
   __tablename__ = "purchases"
@@ -26,6 +32,9 @@ class Purchase(db.Model):
   product_id = db.Column(db.Integer, db.ForeignKey("products.id"), nullable = False)
   created_at = db.Column(db.DateTime, default=datetime.utcnow)
   product = db.relationship("Product", backref = db.backref("purchases", lazy=True))
+  created_at = db.Column(db.DateTime, default=datetime.utcnow)
+  updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 
 class User(db.Model):
   __tablename__ = "users"
@@ -33,5 +42,7 @@ class User(db.Model):
   name = db.Column(db.String(256), nullable=False)
   email = db.Column(db.String(256), unique = True, nullable=False)
   password = db.Column(db.String(256), nullable=False) # hashed
+  created_at = db.Column(db.DateTime, default=datetime.utcnow)
+  updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 # Sales and purchases

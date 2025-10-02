@@ -9,10 +9,16 @@ class FlaskAPITest(unittest.TestCase):
   def test_register(self):
     data = {"name":"Test_User","email":"test@mail.com","password":"12345"}
     response = self.client.post("/api/register",json=data)
-    self.assertEqual(response.status_code, 409 or 201)
+    self.assertEqual(response.status_code, [409 or 201])
     if response.status_code == 201:
       self.assertIn("token",response.get_json())
       print(response.get_json()["token"])
+
+    # def get_token(self):
+    #     data = {"email": "test@mail.com", "password": "12345"}
+    #     response = self.client.post("/api/login", json=data)
+    #     self.assertEqual(response.status_code, 200)
+    #     return response.get_json()["token"]
 
   def test_login(self):
     data = {"email":"test@mail.com","password":"12345"}
@@ -62,4 +68,11 @@ class FlaskAPITest(unittest.TestCase):
       self.assertIn("id", response.get_json())
 
 
-unittest.main()
+if __name__ == "__main__":
+    unittest.main()
+
+# def get_token(self):
+#     data = {"email": "test@mail.com", "password": "12345"}
+#     response = self.client.post("/api/login", json=data)
+#     self.assertEqual(response.status_code, 200)
+#     return response.get_json()["token"]

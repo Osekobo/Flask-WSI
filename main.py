@@ -63,14 +63,14 @@ def login():
             return jsonify({"token":token}), 200
 
 @app.route("/api/users", methods=["GET"])
-@jwt_required
+@jwt_required()
 def get_users():
     users = User.query.all()
     users_list=[]
     for u in users:
       users_list.append({
           "id":u.id,
-          "name":u.username,
+          "name":u.name,
           "email":u.email,
            "created_at": u.created_at.strftime("%Y-%m-%d %H:%M:%S") if hasattr(u, "created_at") else None
       })
