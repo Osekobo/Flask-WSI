@@ -12,7 +12,6 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:12039@localhost:5
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db.init_app(app)
 
-
 sentry_sdk.init(
     dsn="https://d094d4f6e41f019d48dc3cfd2d7f37df@o4510040510431234.ingest.us.sentry.io/4510040789811200",
     # Add data like request headers and IP for users,
@@ -28,7 +27,6 @@ sales_list=[]
 @app.route("/", methods=['GET'])
 def home():
     return jsonify({"Flask API Version": "1.0"}), 200
-
 
 @app.route("/api/register", methods=["POST"])
 def register():
@@ -75,7 +73,6 @@ def get_users():
            "created_at": u.created_at.strftime("%Y-%m-%d %H:%M:%S") if hasattr(u, "created_at") else None
       })
     return jsonify(users_list), 200
-
 
 @app.route("/api/products", methods=["GET", "POST"])
 @jwt_required()
@@ -128,7 +125,6 @@ def sales():
 
 # purchases - product_id(int), quantity(float), created_at(datetime_now)
 
-
 @app.route("/api/purchases", methods=["GET", "POST"])
 @jwt_required()
 def purchases():
@@ -148,7 +144,6 @@ def purchases():
     else:
         error = {"error": "Method not allowed"}
         return jsonify(error), 405
-
 
 if __name__ == "__main__":
     with app.app_context():

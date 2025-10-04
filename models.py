@@ -1,7 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 
-
 db = SQLAlchemy()
 
 class Product(db.Model):
@@ -13,7 +12,6 @@ class Product(db.Model):
   created_at = db.Column(db.DateTime, default=datetime.utcnow)
   updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-
 class Sale(db.Model):
   __tablename__ = "sales"
   id = db.Column(db.Integer,primary_key=True)
@@ -23,7 +21,6 @@ class Sale(db.Model):
   product = db.relationship("Product", backref = db.backref("sales", lazy=True))
   created_at = db.Column(db.DateTime, default=datetime.utcnow)
   updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
 
 class Purchase(db.Model):
   __tablename__ = "purchases"
@@ -35,7 +32,6 @@ class Purchase(db.Model):
   created_at = db.Column(db.DateTime, default=datetime.utcnow)
   updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-
 class User(db.Model):
   __tablename__ = "users"
   id = db.Column(db.Integer, primary_key=True)
@@ -46,3 +42,4 @@ class User(db.Model):
   updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 # Sales and purchases
+

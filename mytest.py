@@ -14,12 +14,6 @@ class FlaskAPITest(unittest.TestCase):
       self.assertIn("token",response.get_json())
       print(response.get_json()["token"])
 
-    # def get_token(self):
-    #     data = {"email": "test@mail.com", "password": "12345"}
-    #     response = self.client.post("/api/login", json=data)
-    #     self.assertEqual(response.status_code, 200)
-    #     return response.get_json()["token"]
-
   def test_login(self):
     data = {"email":"test@mail.com","password":"12345"}
     response = self.client.post("/api/login",json=data)
@@ -32,7 +26,6 @@ class FlaskAPITest(unittest.TestCase):
     response = self.client.get("/api/products",headers=headers)
     self.assertEqual(response.status_code,200)
     self.assertIsInstance(response.get_json(), list)
-
  
   def test_products_post(self):
       headers = {"Authorization": f"Bearer {self.test_login()}"}
@@ -48,8 +41,9 @@ class FlaskAPITest(unittest.TestCase):
       self.assertIsInstance(response.get_json(), list)
   
   def test_purchase_post(self):
+      product_id = self.create_product()
       headers = {"Authorization": f"Bearer {self.test_login()}"}
-      data = {"product_id": 1, "quantity": 5}
+      data = {"product_id": product_id, "quantity": 5}
       response = self.client.post("/api/purchases", json=data, headers=headers)
       self.assertEqual(response.status_code, 201)
       self.assertIn("id", response.get_json())
@@ -61,18 +55,14 @@ class FlaskAPITest(unittest.TestCase):
       self.assertIsInstance(response.get_json(), list)
   
   def test_sale_post(self):
+      product_id = self.create_product()
       headers = {"Authorization": f"Bearer {self.test_login()}"}
-      data = {"product_id": 1, "quantity": 2}
+      data = {"product_id": product_id, "quantity": 2}
       response = self.client.post("/api/sales", json=data, headers=headers)
       self.assertEqual(response.status_code, 201)
       self.assertIn("id", response.get_json())
 
-
 if __name__ == "__main__":
     unittest.main()
 
-# def get_token(self):
-#     data = {"email": "test@mail.com", "password": "12345"}
-#     response = self.client.post("/api/login", json=data)
-#     self.assertEqual(response.status_code, 200)
-#     return response.get_json()["token"]
+
