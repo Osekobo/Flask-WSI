@@ -9,7 +9,7 @@ class FlaskAPITest(unittest.TestCase):
   def test_register(self):
     data = {"name":"Test_User","email":"test@mail.com","password":"12345"}
     response = self.client.post("/api/register",json=data)
-    self.assertEqual(response.status_code, [409 or 201])
+    self.assertIn(response.status_code, [201 or 409])
     if response.status_code == 201:
       self.assertIn("token",response.get_json())
       print(response.get_json()["token"])
@@ -40,6 +40,13 @@ class FlaskAPITest(unittest.TestCase):
       self.assertEqual(response.status_code, 200)
       self.assertIsInstance(response.get_json(), list)
   
+  def create_product(self):
+    headers = {"Authorization": f"Bearer {self.get_token()}"}
+    data = {"name": "Test Product", "buying_price": 10, "selling_price": 20}
+    response = self.client.post("/api/products", json=data, headers=headers)
+    self.assertEqual(response.status_code, 201)
+    return response.get_json()["id"]
+
   def test_purchase_post(self):
       product_id = self.create_product()
       headers = {"Authorization": f"Bearer {self.test_login()}"}
