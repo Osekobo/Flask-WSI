@@ -161,3 +161,61 @@ if __name__ == "__main__":
 # A  Client(web,mobile) can not access a protected route without a token
 # The client stores that toejn once they login or register
 # pip install flask-jwt-extended
+
+# DevOps: Development
+#         Operations
+#         Shorten Development, improve efficiency, delivery
+
+#     Pillars
+#     -Collaboration
+#        Teams + tools(Slack, Whatsapp, Tele || Jira, github || Github)
+#     -Automation
+#     -Continuous intergration - involves merging source code changes into a shared ripo
+#     -Continuous Delivery - automatically prepares the code changes for release to (Staging/Test, UAT) production
+
+
+#DevSecops  -Development
+#           -Security
+#           -Operations
+
+# Benefits
+# 1. Faster time to market(Automation)
+# 2. Better comms and collab
+# 3. Continous testing and monitoring reduces downtime
+# 4. Security
+
+# DEVOPS LIFECYCLE
+# 1. Planing
+# 2. Code
+# 3. Build
+# 4. Test
+# 5. Release
+# 6. Deploy
+# 7. Monitoring
+
+# CI/CD PIPELINE -automated process -> develop, test & deploy
+#                -removes manual errors
+#                -comms/feedback to developers
+
+
+#          ELEMENTS OF CI/CD PIPELINE
+# Source stage -> pipeline is triggered by a source code repo
+#              -> A change source code will trigger a notification to the CI/CD
+# Build Stage  -> Combine the source code and it`s dependencies.
+# Test Stage   -> validate the correctness of the code / product
+# Deploy Stage -> 
+
+# Github Actions
+# CI/CD Platform that allows you to build, test and deploy pipelines(automated workflows)
+# More than just DevOps -> Events e.g workflow that adds release notes || labels whenever PR
+
+# Components of Github Actions
+# 1. Workflows
+#    - A workflow is automated process aimed at running one or more jobs
+#    - Defined YAML/yml
+#    - defined in a folder called .github/workflows
+#    - Repo can have multiple workflows
+# 2. Events - an activity in the repo that will trigger a workflow
+# 3. Jobs - these are steps in a workflow
+# 4. Actions - predefined, reusable set of jobs to perform a specific task eg -> an action to login to a remote server
+# 5. Runners - a server that runs your workflows whenever there triggered
