@@ -4,7 +4,10 @@ from flask_jwt_extended import JWTManager, create_access_token, jwt_required, ge
 import sentry_sdk
 from models import db, Product, Sale, User, Purchase
 
+from flask_cors import CORS
+
 app = Flask(__name__)
+CORS(app) 
 # Change this to a random secret key in production
 app.config['JWT_SECRET_KEY'] = 'hgyutd576uyfutu'
 app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:12039@localhost:5432/flask_api"
@@ -20,9 +23,6 @@ sentry_sdk.init(
 )
 
 jwt = JWTManager(app)
-
-purchases_list = []
-sales_list = []
 
 
 @app.route("/", methods=['GET'])
@@ -67,7 +67,7 @@ def login():
 
 
 @app.route("/api/users", methods=["GET"])
-@jwt_required()
+# @jwt_required()
 def get_users():
     users = User.query.all()
     users_list = []
@@ -82,7 +82,7 @@ def get_users():
 
 
 @app.route("/api/products", methods=["GET", "POST"])
-@jwt_required()
+# @jwt_required()
 def products():
     if request.method == "GET":
         products = Product.query.all()
@@ -111,13 +111,21 @@ def products():
         error = {"error": "Method not allowed"}
         return jsonify(error), 405
 
-# sales - product_id(int), quantity(float), created_at(datetime_now)
-
 
 @app.route("/api/sales", methods=["GET", "POST"])
-@jwt_required()
+# @jwt_required()
 def sales():
     if request.method == "GET":
+        sales = Sale.query.all()
+        sales_list = []
+        for s in sales:
+            sales_list.append({
+                "id": s.id,
+                "product_id": s.product_id,
+                "quantity": s.quantity,
+                "created_at": s.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+                "updated_at": s.updated_at.strftime("%Y-%m-%d %H:%M:%S")
+            })
         return jsonify(sales_list), 200
     elif request.method == "POST":
         data = dict(request.get_json())
@@ -125,22 +133,42 @@ def sales():
             data["created_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         if "product_id" not in data.keys() or "quantity" not in data.keys():
             error = {
-                "error": "Ensure  all fields are set and with correct input types"}
+                "error": "Ensure all fields are set and with correct input types"}
             return jsonify(error), 400
         else:
-            sales_list.append(data)
-            return jsonify(data), 201
+            try:
+                sale = Sale(
+                    product_id=data["product_id"],
+                    quantity=data["quantity"]
+                )
+                db.session.add(sale)
+                db.session.commit()
+                data["id"] = sale.id
+                data["updated_at"] = sale.updated_at.strftime(
+                    "%Y-%m-%d %H:%M:%S")
+                return jsonify(data), 201
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({"error": str(e)}), 500
     else:
         error = {"error": "Method not allowed"}
         return jsonify(error), 405
 
-# purchases - product_id(int), quantity(float), created_at(datetime_now)
-
 
 @app.route("/api/purchases", methods=["GET", "POST"])
-@jwt_required()
+# @jwt_required()  # enable when you're ready for token protection
 def purchases():
     if request.method == "GET":
+        purchases = Purchase.query.all()
+        purchases_list = []
+        for p in purchases:
+            purchases_list.append({
+                "id": p.id,
+                "product_id": p.product_id,
+                "quantity": p.quantity,
+                "created_at": p.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+                "updated_at": p.updated_at.strftime("%Y-%m-%d %H:%M:%S")
+            })
         return jsonify(purchases_list), 200
     elif request.method == "POST":
         data = dict(request.get_json())
@@ -148,11 +176,23 @@ def purchases():
             data["created_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         if "product_id" not in data.keys() or "quantity" not in data.keys():
             error = {
-                "error": "Ensure  all fields are set and with correct input types"}
+                "error": "Ensure all fields are set and with correct input types"}
             return jsonify(error), 400
         else:
-            purchases_list.append(data)
-            return jsonify(data), 201
+            try:
+                purchase = Purchase(
+                    product_id=data["product_id"],
+                    quantity=data["quantity"]
+                )
+                db.session.add(purchase)
+                db.session.commit()
+                data["id"] = purchase.id
+                data["updated_at"] = purchase.updated_at.strftime(
+                    "%Y-%m-%d %H:%M:%S")
+                return jsonify(data), 201
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({"error": str(e)}), 500
     else:
         error = {"error": "Method not allowed"}
         return jsonify(error), 405
@@ -162,8 +202,6 @@ if __name__ == "__main__":
     with app.app_context():
         db.create_all()
     app.run()
-
-# https://jsonplaceholder.typicode.com
 
 # Create a Github Repo - called Flask API and Push your code.
 # Rest API HTTP Rules
@@ -234,134 +272,4 @@ if __name__ == "__main__":
 # 3. Jobs - these are steps in a workflow
 # 4. Actions - predefined, reusable set of jobs to perform a specific task eg -> an action to login to a remote server
 # 5. Runners - a server that runs your workflows whenever there triggered
-
-
-
-
-
-# import { useState, useEffect } from "react";
-# // import 'bootstrap/dist/css/bootstrap.min.css';
-# // import 'bootstrap/dist/js/bootstrap.bundle.min.js';
-# import '/src/index.css'
-
-# function EggsProduction() {
-#     const [eggsproduction, setEggsproduction] = useState([])
-#     const [error, setError] = useState("")
-#     const [formData, setFormData] = useState({
-#         batch_id: "",
-#         date: "",
-#         eggs_collected: "",
-#         broken_eggs: "",
-#         remarks: "",
-#     })
-#     const [showForm, setShowForm] = useState(false);
-
-#     const handleChange = (e) => {
-#         setFormData({
-#             ...formData,
-#             [e.target.name]: e.target.value,
-#         });
-#     };
-
-#     const handleSubmit = async (e) => {
-#         e.preventDefault();
-#         try {
-#             const response = await fetch("http://127.0.0.1:5000/eggsproduction", {
-#                 method: "POST",
-#                 headers: { "Content-Type": "application/json" },
-#                 body: JSON.stringify(formData),
-#             });
-#             const data = await response.json();
-
-#             if (response.ok) {
-#                 setShowForm(false);
-#                 setFormData({ batch_id: "", date: "", eggs_collected: "", broken_eggs: "", remarks: "" })
-#                 setError("")
-#             } else {
-#                 setError(data.message)
-#             }
-#         } catch (err) {
-#             console.error(err);
-#             setError(err.message);
-#         }
-#     }
-
-#     useEffect(() => {
-#         const fetchCollection = async () => {
-#             try {
-#                 const response = await fetch("http://127.0.0.1:5000/eggsproduction")
-#                 const data = await response.json();
-
-#                 if (response.ok) {
-#                     if (Array.isArray(data)) {
-#                         setEggsproduction(data)
-#                     } else {
-#                         setEggsproduction([])
-#                         setError(data.message || "Error with the data format")
-#                     }
-
-#                 } else {
-#                     setError(data.message || "Failed to load eggs collection data!")
-#                 }
-#             } catch (err) {
-#                 setError("Server: " + err.message)
-#             }
-#         }
-#         fetchCollection()
-#     }, [])
-
-#     return (
-#         <div className="collection-page mt-4">
-#             {error && <p className="text-danger text-center">{error}</p>}
-#             <h3 className="text-center mb-3">Collection Data</h3>
-#             {error && <p className="text-danger text-center emsg">{error}</p>}
-#             <div className="d-flex justify-content-end mb-3 position-relative">
-#                 <button className="btn btn-secondary bt1" onClick={() => setShowForm(!showForm)}>{showForm ? "Cancel" : "Add new Collection Data"}</button>
-#                 {showForm && (
-#                     <form onSubmit={handleSubmit} className="mb-4 frm">
-#                         <div className="row g-2 form-row">
-#                             <div className="col-md-2"> <input type="text" name="batch_id" placeholder="Batch ID" value={formData.batch_id} onChange={handleChange} required className="form-control expense-input" /></div>
-#                             <div className="col-md-2"> <input type="date" name="date" placeholder="Date" value={formData.date} onChange={handleChange} required className="form-control expense-input" /></div>
-#                             <div className="col-md-2">     <input type="text" name="eggs_collected" placeholder="Eggs Collected" value={formData.eggs_collected} onChange={handleChange} required className="form-control expense-input" /></div>
-#                             <div className="col-md-2">   <input type="text" name="broken_eggs" placeholder="Broken Eggs" value={formData.broken_eggs} onChange={handleChange} required className="form-control expense-input" /></div>
-#                             <div className="col-md-3">
-#                                 <input type="text" name="remarks" placeholder="Remarks on Collection" value={formData.remarks} onChange={handleChange} className="form-control expense-input" /></div>
-#                             <div className="col-md-1 d-flex align-items-center justify-content-center"><button type="submit" className="btn btn-secondary mt-3 sbtn">Save</button></div>
-#                         </div>
-#                     </form>
-#                 )}
-#             </div>
-#             <div>
-#                 <table className="table table-hover text-center align-middle batch-table">
-#                     <thead className="table-secondary">
-#                         <tr>
-#                             <td>Batch ID</td>
-#                             <td>Date</td>
-#                             <td>Eggs Collected</td>
-#                             <td>Broken Eggs</td>
-#                             <td>Remaining Eggs</td>
-#                             <td>Number of Crates</td>
-#                             <td>Remarks</td>
-#                             <td>Extra Eggs</td>
-#                         </tr>
-#                     </thead>
-#                     <tbody>
-#                         {eggsproduction.map((e) => (
-#                             <tr key={e.id} className="batch-row">
-#                                 <td>{e.batch_id}</td>
-#                                 <td>{e.date}</td>
-#                                 <td>{e.eggs_collected}</td>
-#                                 <td>{e.broken_eggs}</td>
-#                                 <td>{e.remaining_eggs}</td>
-#                                 <td>{e.quantity_in_crates}</td>
-#                                 <td>{e.remarks}</td>
-#                                 <td>{e.extra_eggs}</td>
-#                             </tr>
-#                         ))}
-#                     </tbody>
-#                 </table>
-#             </div>
-#         </div>
-#     )
-# }
-# export default EggsProduction;
+# https://jsonplaceholder.typicode.com

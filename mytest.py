@@ -1,75 +1,82 @@
-import unittest, json
+import unittest
+import json
 from main import app
+
 
 class FlaskAPITest(unittest.TestCase):
 
-  def setUp(self):
-    self.client = app.test_client()
+    def setUp(self):
+        self.client = app.test_client()
 
-  def test_register(self):
-    data = {"name":"Test_User","email":"test@mail.com","password":"12345"}
-    response = self.client.post("/api/register",json=data)
-    self.assertIn(response.status_code, [201 or 409])
-    if response.status_code == 201:
-      self.assertIn("token",response.get_json())
-      print(response.get_json()["token"])
+    def test_register(self):
+        data = {"name": "Test_User",
+                "email": "test@mail.com", "password": "12345"}
+        response = self.client.post("/api/register", json=data)
+        self.assertIn(response.status_code, [201 or 409])
+        if response.status_code == 201:
+            self.assertIn("token", response.get_json())
+            print(response.get_json()["token"])
 
-  def test_login(self):
-    data = {"email":"test@mail.com","password":"12345"}
-    response = self.client.post("/api/login",json=data)
-    self.assertEqual(response.status_code,200)
-    self.assertIn("token",response.get_json())
-    print(response.get_json()["token"])
+    def test_login(self):
+        data = {"email": "test@mail.com", "password": "12345"}
+        response = self.client.post("/api/login", json=data)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("token", response.get_json())
+        print(response.get_json()["token"])
 
-  def test_products(self):     
-    headers = {"Authorization" : f"Bearer {self.test_login()}"}
-    response = self.client.get("/api/products",headers=headers)
-    self.assertEqual(response.status_code,200)
-    self.assertIsInstance(response.get_json(), list)
- 
-  def test_products_post(self):
-      headers = {"Authorization": f"Bearer {self.test_login()}"}
-      data = {"name": "Sample Product", "buying_price": 19.99, "selling_price": 29.99}
-      response = self.client.post("/api/products", json=data, headers=headers)
-      self.assertEqual(response.status_code, 201)
-      self.assertIn("id", response.get_json())
-  
-  def test_purchases(self):
-      headers = {"Authorization": f"Bearer {self.test_login()}"}
-      response = self.client.get("/api/purchases", headers=headers)
-      self.assertEqual(response.status_code, 200)
-      self.assertIsInstance(response.get_json(), list)
-  
-  def create_product(self):
-    headers = {"Authorization": f"Bearer {self.get_token()}"}
-    data = {"name": "Test Product", "buying_price": 10, "selling_price": 20}
-    response = self.client.post("/api/products", json=data, headers=headers)
-    self.assertEqual(response.status_code, 201)
-    return response.get_json()["id"]
+    def test_products(self):
+        headers = {"Authorization": f"Bearer {self.test_login()}"}
+        response = self.client.get("/api/products", headers=headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.get_json(), list)
 
-  def test_purchase_post(self):
-      product_id = self.create_product()
-      headers = {"Authorization": f"Bearer {self.test_login()}"}
-      data = {"product_id": product_id, "quantity": 5}
-      response = self.client.post("/api/purchases", json=data, headers=headers)
-      self.assertEqual(response.status_code, 201)
-      self.assertIn("id", response.get_json())
-  
-  def test_sales(self):
-      headers = {"Authorization": f"Bearer {self.test_login()}"}
-      response = self.client.get("/api/sales", headers=headers)
-      self.assertEqual(response.status_code, 200)
-      self.assertIsInstance(response.get_json(), list)
-  
-  def test_sale_post(self):
-      product_id = self.create_product()
-      headers = {"Authorization": f"Bearer {self.test_login()}"}
-      data = {"product_id": product_id, "quantity": 2}
-      response = self.client.post("/api/sales", json=data, headers=headers)
-      self.assertEqual(response.status_code, 201)
-      self.assertIn("id", response.get_json())
+    def test_products_post(self):
+        headers = {"Authorization": f"Bearer {self.test_login()}"}
+        data = {"name": "Sample Product",
+                "buying_price": 19.99, "selling_price": 29.99}
+        response = self.client.post(
+            "/api/products", json=data, headers=headers)
+        self.assertEqual(response.status_code, 201)
+        self.assertIn("id", response.get_json())
+
+    def test_purchases(self):
+        headers = {"Authorization": f"Bearer {self.test_login()}"}
+        response = self.client.get("/api/purchases", headers=headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.get_json(), list)
+
+    def create_product(self):
+        headers = {"Authorization": f"Bearer {self.get_token()}"}
+        data = {"name": "Test Product",
+                "buying_price": 10, "selling_price": 20}
+        response = self.client.post(
+            "/api/products", json=data, headers=headers)
+        self.assertEqual(response.status_code, 201)
+        return response.get_json()["id"]
+
+    def test_purchase_post(self):
+        product_id = self.create_product()
+        headers = {"Authorization": f"Bearer {self.test_login()}"}
+        data = {"product_id": product_id, "quantity": 5}
+        response = self.client.post(
+            "/api/purchases", json=data, headers=headers)
+        self.assertEqual(response.status_code, 201)
+        self.assertIn("id", response.get_json())
+
+    def test_sales(self):
+        headers = {"Authorization": f"Bearer {self.test_login()}"}
+        response = self.client.get("/api/sales", headers=headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.get_json(), list)
+
+    def test_sale_post(self):
+        product_id = self.create_product()
+        headers = {"Authorization": f"Bearer {self.test_login()}"}
+        data = {"product_id": product_id, "quantity": 2}
+        response = self.client.post("/api/sales", json=data, headers=headers)
+        self.assertEqual(response.status_code, 201)
+        self.assertIn("id", response.get_json())
+
 
 if __name__ == "__main__":
     unittest.main()
-
-
