@@ -7,7 +7,7 @@ from models import db, Product, Sale, User, Purchase
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app) 
+CORS(app)
 # Change this to a random secret key in production
 app.config['JWT_SECRET_KEY'] = 'hgyutd576uyfutu'
 app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:12039@localhost:5432/flask_api"
@@ -67,7 +67,7 @@ def login():
 
 
 @app.route("/api/users", methods=["GET"])
-# @jwt_required()
+@jwt_required()
 def get_users():
     users = User.query.all()
     users_list = []
@@ -82,7 +82,7 @@ def get_users():
 
 
 @app.route("/api/products", methods=["GET", "POST"])
-# @jwt_required()
+@jwt_required()
 def products():
     if request.method == "GET":
         products = Product.query.all()
@@ -113,7 +113,7 @@ def products():
 
 
 @app.route("/api/sales", methods=["GET", "POST"])
-# @jwt_required()
+@jwt_required()
 def sales():
     if request.method == "GET":
         sales = Sale.query.all()
@@ -156,7 +156,7 @@ def sales():
 
 
 @app.route("/api/purchases", methods=["GET", "POST"])
-# @jwt_required()  # enable when you're ready for token protection
+@jwt_required()  # enable when you're ready for token protection
 def purchases():
     if request.method == "GET":
         purchases = Purchase.query.all()
