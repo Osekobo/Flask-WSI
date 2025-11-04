@@ -3,7 +3,7 @@ from datetime import datetime
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 import sentry_sdk
 from models import db, Product, Sale, User, Purchase
-
+from sqlalchemy import func
 from flask_cors import CORS
 
 app = Flask(__name__)
@@ -28,6 +28,33 @@ jwt = JWTManager(app)
 @app.route("/", methods=['GET'])
 def home():
     return jsonify({"Flask API Version": "1.0"}), 200
+
+
+@app.route("/api/dashboard", methods=["GET"])
+@jwt_required()
+def dashboard():
+    if request.method == "GET":
+      remaining_stock_query = (
+      db.session.query(
+        Product.id,
+        Product.name,
+        (func.coalesce(func.sum(Purchase.quantity), 0)
+         - func.coalesce(func.sum(Sale.quantity), 0)).label("remaining_stock")
+    )
+        .outerjoin(Purchase, Product.id == Purchase.product_id)
+        .outerjoin(Sale, Product.id == Sale.product_id)
+        .group_by(Product.id, Product.name)
+        )
+    
+      results = remaining_stock_query.all()
+      print("---------------",results)
+    
+      return jsonify(results), 200
+    else:
+        error = {"error": "Method not allowed"}
+        return jsonify(error), 405
+
+
 
 
 @app.route("/api/register", methods=["POST"])
