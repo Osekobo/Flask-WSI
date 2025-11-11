@@ -245,7 +245,7 @@ def sales():
 
 
 @app.route("/api/purchases", methods=["GET", "POST"])
-@jwt_required()  # enable when you're ready for token protection
+@jwt_required() 
 def purchases():
     if request.method == "GET":
         purchases = Purchase.query.all()
@@ -279,9 +279,9 @@ def purchases():
                 data["updated_at"] = purchase.updated_at.strftime(
                     "%Y-%m-%d %H:%M:%S")
                 return jsonify(data), 201
-            except Exception as e:
-                db.session.rollback()
-                return jsonify({"error": str(e)}), 500
+           # except Exception as e:
+             #   db.session.rollback()
+               # return jsonify({"error": str(e)}), 500
     else:
         error = {"error": "Method not allowed"}
         return jsonify(error), 405
