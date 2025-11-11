@@ -2,9 +2,11 @@ from flask import Flask, jsonify, request
 from datetime import datetime
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 import sentry_sdk
-from models import db, Product, Sale, User, Purchase
+from models import db, Product, Sale, User, Purchase, SalesDetails
 from sqlalchemy import func
+# from app import app, db
 from flask_cors import CORS
+from collections import defaultdict
 
 app = Flask(__name__)
 CORS(app)
@@ -34,27 +36,28 @@ def home():
 @jwt_required()
 def dashboard():
     if request.method == "GET":
-      remaining_stock_query = (
-      db.session.query(
-        Product.id,
-        Product.name,
-        (func.coalesce(func.sum(Purchase.quantity), 0)
-         - func.coalesce(func.sum(Sale.quantity), 0)).label("remaining_stock")
-    )
-        .outerjoin(Purchase, Product.id == Purchase.product_id)
-        .outerjoin(Sale, Product.id == Sale.product_id)
-        .group_by(Product.id, Product.name)
+        remaining_stock_query = (
+            db.session.query(
+                Product.id,
+                Product.name,
+                (func.coalesce(func.sum(Purchase.quantity), 0)
+                 - func.coalesce(func.sum(Sale.quantity), 0)).label("remaining_stock")
+            )
+            .outerjoin(Purchase, Product.id == Purchase.product_id)
+            .outerjoin(Sale, Product.id == Sale.product_id)
+            .group_by(Product.id, Product.name)
         )
-    
-      results = remaining_stock_query.all()
-      print("---------------",results)
-    
-      return jsonify(results), 200
+        results = remaining_stock_query.all()
+        print("---------------", results)
+        data = []
+        labels = []
+        for r in results:
+            data.append(r.remaining_stock)
+            labels.append(r.name)
+        return jsonify({"data": data, "labels": labels}), 200
     else:
         error = {"error": "Method not allowed"}
         return jsonify(error), 405
-
-
 
 
 @app.route("/api/register", methods=["POST"])
@@ -81,7 +84,8 @@ def register():
 def login():
     data = request.get_json()
     if "email" not in data.keys() or "password" not in data.keys():
-        return jsonify({"error": "Ensure all fields are filled"}), 400
+        error = {"error": "Ensure all fields are filled"}
+        return jsonify(error), 400
     else:
         usr = User.query.filter_by(
             email=data["email"], password=data["password"]).first()
@@ -143,43 +147,101 @@ def products():
 @jwt_required()
 def sales():
     if request.method == "GET":
-        sales = Sale.query.all()
-        sales_list = []
-        for s in sales:
-            sales_list.append({
-                "id": s.id,
-                "product_id": s.product_id,
-                "quantity": s.quantity,
-                "created_at": s.created_at.strftime("%Y-%m-%d %H:%M:%S"),
-                "updated_at": s.updated_at.strftime("%Y-%m-%d %H:%M:%S")
-            })
-        return jsonify(sales_list), 200
+        results = (
+            db.session.query(Sale, SalesDetails, Product)
+            .join(SalesDetails, SalesDetails.sale_id == Sale.id)
+            .join(Product, Product.id == SalesDetails.product_id)
+            .order_by(Sale.created_at.desc())
+            .all()
+        )
+        # group result by sale
+        sales_group = defaultdict(list)
+        for sale, detail, product in results:
+            sales_group[sale.id].append((sale, detail, product))
+        result = [
+            {
+                "sale_id": sale.id,
+                "created_at": sale.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+                "items": [
+                    {
+                        "product_id": product.id,
+                        "product_name": product.name,
+                        "quantity": detail.quantity
+                    }
+                    for _, detail, product in grouped
+                ]
+            }
+            for sale_id, grouped in sales_group.items()
+            for sale, _, _ in [grouped[0]]
+        ]
+        print("-----------------------------------", sales_group)
+        return jsonify(result), 200
     elif request.method == "POST":
-        data = dict(request.get_json())
-        if "created_at" not in data:
-            data["created_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        if "product_id" not in data.keys() or "quantity" not in data.keys():
-            error = {
-                "error": "Ensure all fields are set and with correct input types"}
-            return jsonify(error), 400
-        else:
-            try:
+        try:
+            data = request.get_json()
+            sales_data = data.get("sales", [])
+
+            # Validate list content
+            if not sales_data or not isinstance(sales_data, list):
+                return jsonify({"error": "Request must include a 'sales' list"}), 400
+
+            created_sales = []
+            for sale_item in sales_data:
+                product_id = sale_item.get("product_id")
+                quantity = sale_item.get("quantity")
+
+                if not product_id or not quantity:
+                    return jsonify({"error": "Each sale must include product_id and quantity"}), 400
+
                 sale = Sale(
-                    product_id=data["product_id"],
-                    quantity=data["quantity"]
+                    product_id=product_id,
+                    quantity=quantity
                 )
                 db.session.add(sale)
-                db.session.commit()
-                data["id"] = sale.id
-                data["updated_at"] = sale.updated_at.strftime(
-                    "%Y-%m-%d %H:%M:%S")
-                return jsonify(data), 201
-            except Exception as e:
-                db.session.rollback()
-                return jsonify({"error": str(e)}), 500
+                db.session.flush()  # get sale.id before commit
+
+                created_sales.append({
+                    "id": sale.id,
+                    "product_id": sale.product_id,
+                    "quantity": sale.quantity,
+                    "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                })
+
+            db.session.commit()
+            return jsonify({"message": "Sales added successfully", "sales": created_sales}), 201
+
+        except Exception as e:
+            db.session.rollback()
+        return jsonify({"error": str(e)}), 500
     else:
-        error = {"error": "Method not allowed"}
-        return jsonify(error), 405
+        return jsonify({"error": "Method not allowed"}), 405
+
+    #     data = dict(request.get_json())
+    #     if "created_at" not in data:
+    #         data["created_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    #     if "product_id" not in data.keys() or "quantity" not in data.keys():
+    #         error = {
+    #             "error": "Ensure all fields are set and with correct input types"}
+    #         return jsonify(error), 400
+    #     else:
+    #         try:
+    #             sale = Sale(
+    #                 product_id=data["product_id"],
+    #                 quantity=data["quantity"]
+    #             )
+    #             db.session.add(sale)
+    #             db.session.commit()
+    #             data["id"] = sale.id
+    #             data["updated_at"] = sale.updated_at.strftime(
+    #                 "%Y-%m-%d %H:%M:%S")
+    #             return jsonify(data), 201
+    #         except Exception as e:
+    #             db.session.rollback()
+    #             return jsonify({"error": str(e)}), 500
+    # else:
+    #     error = {"error": "Method not allowed"}
+    #     return jsonify(error), 405
 
 
 @app.route("/api/purchases", methods=["GET", "POST"])
