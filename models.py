@@ -15,22 +15,33 @@ class Product(db.Model):
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class Payment(db.Model):
+    id = db.Column(db.Integer, primary_key = True)
+    mode = db.Column(db.String(80), nullable=False)
+    sale_id = db.Column(db.Integer, db.ForeignKey('sales.id'), nullable=False)
+    mpesa_ref = db.Column(db.String(120), nullable=False)
+    trans_amount = db.Column(db.Integer, nullable=False)
+    trans_name = db.Column(db.String(120), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+
+    sale = db.relationship('Sale', backref=db.backref('payments', lazy=True))
+
 class Sale(db.Model):
     __tablename__ = "sales"
     id = db.Column(db.Integer, primary_key=True)
-    quantity = db.Column(db.Float, nullable=False)
-    product_id = db.Column(db.Integer, db.ForeignKey(
-        "products.id"), nullable=False)
+    # quantity = db.Column(db.Float, nullable=False)
+    # product_id = db.Column(db.Integer, db.ForeignKey(
+    #      "products.id"), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    product = db.relationship(
-        "Product", backref=db.backref("sales", lazy=True))
+    # product = db.relationship(
+    #     "Product", backref=db.backref("sales", lazy=True))
+    details = db.relationship("SalesDetails", backref="sale", lazy=True)
 
 
 class SalesDetails(db.Model):
     __tablename__ = 'sales_details'
-
     id = db.Column(db.Integer, primary_key=True)
     sale_id = db.Column(db.Integer, db.ForeignKey('sales.id'), nullable=False)
     product_id = db.Column(db.Integer, nullable=False)
@@ -60,21 +71,3 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-
-# Remaining stock is purchase quantity - sale quantity, for every product
-
-# from sqlalchemy import func
-
-# remaining_stock = (
-#     db.session.query(
-#         Product.id,
-#         Product.name,
-#         (func.coalesce(func.sum(Purchase.quantity), 0) -
-#          func.coalesce(func.sum(Sale.quantity), 0)).label("remaining_stock")
-#     )
-#     .outerjoin(Purchase, Product.id == Purchase.product_id)
-#     .outerjoin(Sale, Product.id == Sale.product_id)
-#     .group_by(Product.id, Product.name)
-#     .all()
-# )

@@ -41,10 +41,10 @@ def dashboard():
                 Product.id,
                 Product.name,
                 (func.coalesce(func.sum(Purchase.quantity), 0)
-                 - func.coalesce(func.sum(Sale.quantity), 0)).label("remaining_stock")
+                 - func.coalesce(func.sum(SalesDetails.quantity), 0)).label("remaining_stock")
             )
             .outerjoin(Purchase, Product.id == Purchase.product_id)
-            .outerjoin(Sale, Product.id == Sale.product_id)
+            .outerjoin(SalesDetails, Product.id == SalesDetails.product_id)
             .group_by(Product.id, Product.name)
         )
         results = remaining_stock_query.all()
@@ -66,7 +66,6 @@ def register():
     if "name" not in data.keys() or "email" not in data.keys() or "password" not in data.keys():
         error = {"error": "Ensure all fields are filled"}
         return jsonify(error), 400
-        # Elif expected to check mail is valid/exists, password is long, fields not empty
     elif User.query.filter_by(email=data["email"]).first() is not None:
         error = {"error": "User with that email already exists"}
         return jsonify(error), 409
@@ -174,78 +173,48 @@ def sales():
             for sale_id, grouped in sales_group.items()
             for sale, _, _ in [grouped[0]]
         ]
-        print("-----------------------------------", sales_group)
+        # print("-----------------------------------", sales_group)
         return jsonify(result), 200
     elif request.method == "POST":
         try:
             data = request.get_json()
+            # print("Incoming sales data----------------:", data)
             sales_data = data.get("sales", [])
-
-            # Validate list content
             if not sales_data or not isinstance(sales_data, list):
                 return jsonify({"error": "Request must include a 'sales' list"}), 400
-
-            created_sales = []
-            for sale_item in sales_data:
-                product_id = sale_item.get("product_id")
-                quantity = sale_item.get("quantity")
-
+            sale = Sale()
+            db.session.add(sale)
+            db.session.flush()
+            created_details = []
+            for item in sales_data:
+                product_id = item.get("product_id")
+                quantity = item.get("quantity")
                 if not product_id or not quantity:
                     return jsonify({"error": "Each sale must include product_id and quantity"}), 400
-
-                sale = Sale(
+                detail = SalesDetails(
+                    sale_id=sale.id,
                     product_id=product_id,
                     quantity=quantity
                 )
-                db.session.add(sale)
-                db.session.flush()  # get sale.id before commit
-
-                created_sales.append({
-                    "id": sale.id,
-                    "product_id": sale.product_id,
-                    "quantity": sale.quantity,
-                    "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                db.session.add(detail)
+                created_details.append({
+                    "product_id": detail.product_id,
+                    "quantity": detail.quantity,
                 })
-
             db.session.commit()
-            return jsonify({"message": "Sales added successfully", "sales": created_sales}), 201
-
+            return jsonify({"message": "Sales added successfully", "sale_id": sale.id, "details": created_details}), 201
         except Exception as e:
             db.session.rollback()
-        return jsonify({"error": str(e)}), 500
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": str(e)}), 500
+
     else:
         return jsonify({"error": "Method not allowed"}), 405
 
-    #     data = dict(request.get_json())
-    #     if "created_at" not in data:
-    #         data["created_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    #     if "product_id" not in data.keys() or "quantity" not in data.keys():
-    #         error = {
-    #             "error": "Ensure all fields are set and with correct input types"}
-    #         return jsonify(error), 400
-    #     else:
-    #         try:
-    #             sale = Sale(
-    #                 product_id=data["product_id"],
-    #                 quantity=data["quantity"]
-    #             )
-    #             db.session.add(sale)
-    #             db.session.commit()
-    #             data["id"] = sale.id
-    #             data["updated_at"] = sale.updated_at.strftime(
-    #                 "%Y-%m-%d %H:%M:%S")
-    #             return jsonify(data), 201
-    #         except Exception as e:
-    #             db.session.rollback()
-    #             return jsonify({"error": str(e)}), 500
-    # else:
-    #     error = {"error": "Method not allowed"}
-    #     return jsonify(error), 405
-
 
 @app.route("/api/purchases", methods=["GET", "POST"])
-@jwt_required() 
+@jwt_required()
 def purchases():
     if request.method == "GET":
         purchases = Purchase.query.all()
@@ -279,9 +248,9 @@ def purchases():
                 data["updated_at"] = purchase.updated_at.strftime(
                     "%Y-%m-%d %H:%M:%S")
                 return jsonify(data), 201
-           # except Exception as e:
-             #   db.session.rollback()
-               # return jsonify({"error": str(e)}), 500
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({"error": str(e)}), 500
     else:
         error = {"error": "Method not allowed"}
         return jsonify(error), 405
