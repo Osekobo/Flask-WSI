@@ -256,10 +256,17 @@ def purchases():
         return jsonify(error), 405
 
 
+@app.route("/api/mpesa/callback", methods=["GET", "POST"])
+def mpesa():
+    data = request.get_json()
+    print(data)
+
+
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
     app.run()
+
 
 # Create a Github Repo - called Flask API and Push your code.
 # Rest API HTTP Rules
