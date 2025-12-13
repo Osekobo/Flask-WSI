@@ -7,7 +7,7 @@ from requests.auth import HTTPBasicAuth
 
 consumer_key = "GmY1LM09qcoUnEe5GuZYslgrMHsRZoPbFmNQoULhwtOtMqxS"
 consumer_secret = "GP3EarK9WFGxqygKdKDJDITav0eqRzO7mEB3j9jDV4IOqMkHaEaYbNiGAwGhEht9"
-short_code = "174379" 
+short_code = "174379"
 app_url = "https://nonobligatory-microseismic-bernardo.ngrok-free.dev/api/mpesa/callback"
 
 saf_pass_key = "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919"
@@ -49,7 +49,6 @@ password = generate_password()
 print(password)
 
 
-
 def make_stk_push(payload):
     amount = payload['amount']
     phone_number = payload['phone_number']
@@ -77,5 +76,6 @@ def make_stk_push(payload):
 
     return response_data
 
-stk = make_stk_push({"amount":1, "phone_number":"254714391137"})
+
+stk = make_stk_push({"amount": 1, "phone_number": "254714391137"})
 print(stk)

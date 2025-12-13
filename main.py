@@ -208,7 +208,6 @@ def sales():
             import traceback
             traceback.print_exc()
             return jsonify({"error": str(e)}), 500
-
     else:
         return jsonify({"error": "Method not allowed"}), 405
 
@@ -257,9 +256,13 @@ def purchases():
 
 
 @app.route("/api/mpesa/callback", methods=["GET", "POST"])
-def mpesa():
+def mpesa_callback():
     data = request.get_json()
+    print("\n=== CALLBACK RECEIVED ===")
     print(data)
+    print("========================\n")
+
+    return {"message": "Callback received"}, 200
 
 
 if __name__ == "__main__":
