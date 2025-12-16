@@ -141,6 +141,29 @@ def products():
         error = {"error": "Method not allowed"}
         return jsonify(error), 405
 
+# update product per id route
+@app.route("/api/products/<int:id>", methods=["PUT"])
+@jwt_required()
+def update_product(id):
+    data = request.get_json()
+    product = Product.query.get(id)
+    if not product:
+        return jsonify({"error": "Product not found"}), 404
+
+    # Update fields if provided
+    product.name = data.get("name", product.name)
+    product.buying_price = data.get("buying_price", product.buying_price)
+    product.selling_price = data.get("selling_price", product.selling_price)
+
+    db.session.commit()
+
+    return jsonify({
+        "id": product.id,
+        "name": product.name,
+        "buying_price": product.buying_price,
+        "selling_price": product.selling_price
+    }), 200
+
 
 @app.route("/api/sales", methods=["GET", "POST"])
 @jwt_required()
@@ -264,6 +287,26 @@ def mpesa_callback():
 
     return {"message": "Callback received"}, 200
 
+
+# @app.route("/api/sales/trend")
+# @jwt_required()
+# def sales_trend():
+#     results = (
+#         db.session.query(
+#             func.date(Sale.created_at).label("date"),
+#             func.sum(Sale.quantity).label("total_sales")
+#         )
+#         .group_by(func.date(Sale.created_at))
+#         .order_by(func.date(Sale.created_at))
+#         .all()
+#     )
+
+#     return jsonify([
+#         {
+#             "date": r.date.strftime("%Y-%m-%d"),
+#             "total_sales": r.total_sales
+#         } for r in results
+#     ])
 
 if __name__ == "__main__":
     with app.app_context():
