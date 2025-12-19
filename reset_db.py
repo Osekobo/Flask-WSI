@@ -84,7 +84,6 @@ def sales():
                 quantity = item.get("quantity")
                 if not product_id or not quantity:
                     return jsonify({"error": "Each sale must include product_id and quantity"}), 400
-                 # Loops through each item in the sales list. Checks that product_id and quantity are provided; returns 400 if not.
                 detail = SalesDetails(
                     sale_id=sale.id,
                     product_id=product_id,
