@@ -31,7 +31,6 @@ jwt = JWTManager(app)
 def home():
     return jsonify({"Flask API Version": "1.0"}), 200
 
-
 @app.route("/api/dashboard", methods=["GET"])
 @jwt_required()
 def dashboard():
@@ -59,7 +58,6 @@ def dashboard():
         error = {"error": "Method not allowed"}
         return jsonify(error), 405
 
-
 @app.route("/api/register", methods=["POST"])
 def register():
     data = request.get_json()
@@ -77,7 +75,6 @@ def register():
         data["id"] = usr.id
         token = create_access_token(identity=data["email"])
         return jsonify({"message": "User registered successfully", "token": token}), 201
-
 
 @app.route("/api/login", methods=["POST"])
 def login():
