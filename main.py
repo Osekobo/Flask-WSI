@@ -31,6 +31,7 @@ jwt = JWTManager(app)
 def home():
     return jsonify({"Flask API Version": "1.0"}), 200
 
+
 @app.route("/api/dashboard", methods=["GET"])
 @jwt_required()
 def dashboard():
@@ -58,6 +59,7 @@ def dashboard():
         error = {"error": "Method not allowed"}
         return jsonify(error), 405
 
+
 @app.route("/api/register", methods=["POST"])
 def register():
     data = request.get_json()
@@ -75,6 +77,7 @@ def register():
         data["id"] = usr.id
         token = create_access_token(identity=data["email"])
         return jsonify({"message": "User registered successfully", "token": token}), 201
+
 
 @app.route("/api/login", methods=["POST"])
 def login():
@@ -116,7 +119,7 @@ def products():
         products_list = []
         for prod in products:
             data = {"id": prod.id, "name": prod.name,
-                    "buying_price": prod.buying_price, "selling_price": prod.selling_price}
+                    "buying_price": prod.buying_price, "selling_price": prod.selling_price, "model": prod.model, "year": prod.year, "condition": prod.condition, "fuel": prod.fuel}
             products_list.append(data)
         # retriving products
         return jsonify(products_list), 200
@@ -139,6 +142,8 @@ def products():
         return jsonify(error), 405
 
 # update product per id route
+
+
 @app.route("/api/products/<int:id>", methods=["PUT"])
 @jwt_required()
 def update_product(id):
