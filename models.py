@@ -10,6 +10,12 @@ class Product(db.Model):
     name = db.Column(db.String(256), nullable=False)
     buying_price = db.Column(db.Float, nullable=False)
     selling_price = db.Column(db.Float, nullable=False)
+
+    model = db.Column(db.String, nullable=False)
+    year = db.Column(db.Integer, nullable=False)
+    condition = db.Column(db.String, nullable=False)
+    fuel = db.Column(db.String, nullable=False)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

@@ -125,13 +125,16 @@ def products():
         return jsonify(products_list), 200
     elif request.method == "POST":
         data = dict(request.get_json())
-        if "name" not in data.keys() or "buying_price" not in data.keys() or "selling_price" not in data.keys():
+        # data = request.get_json(silent=True)
+        # if not data:
+        #     return jsonify({"error": "Invalid or missing JSON body"}), 400
+        if "name" not in data.keys() or "buying_price" not in data.keys() or "selling_price" not in data.keys() or "model" not in data.keys() or "year" not in data.keys() or "condition" not in data.keys() or "fuel" not in data.keys():
             error = {"error": "Ensure  all fields are set"}
             return jsonify(error), 400
         else:
             # products_list.append(data)
             prod = Product(
-                name=data["name"], buying_price=data["buying_price"], selling_price=data["selling_price"])
+                name=data["name"], buying_price=data["buying_price"], selling_price=data["selling_price"], model=data["model"], year=data["year"], condition=data["condition"], fuel=data["fuel"])
             db.session.add(prod)
             db.session.commit()
             data["id"] = prod.id
@@ -156,6 +159,10 @@ def update_product(id):
     product.name = data.get("name", product.name)
     product.buying_price = data.get("buying_price", product.buying_price)
     product.selling_price = data.get("selling_price", product.selling_price)
+    product.model = data.get("model", product.model)
+    product.year = data.get("year", product.year)
+    product.condition = data.get("condition", product.condition)
+    product.fuel = data.get("fuel", product.fuel)
 
     db.session.commit()
 
@@ -163,7 +170,11 @@ def update_product(id):
         "id": product.id,
         "name": product.name,
         "buying_price": product.buying_price,
-        "selling_price": product.selling_price
+        "selling_price": product.selling_price,
+        "model": product.model,
+        "year": product.year,
+        "condition": product.condition,
+        "fuel": product.fuel
     }), 200
 
 
@@ -312,6 +323,7 @@ def mpesa_callback():
 
 if __name__ == "__main__":
     with app.app_context():
+        # db.drop_all()
         db.create_all()
     app.run()
 
