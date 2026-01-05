@@ -63,14 +63,14 @@ def dashboard():
 @app.route("/api/register", methods=["POST"])
 def register():
     data = request.get_json()
-    if "name" not in data.keys() or "email" not in data.keys() or "password" not in data.keys():
+    if "name" not in data.keys() or "phone" not in data.keys() or "email" not in data.keys() or "password" not in data.keys():
         error = {"error": "Ensure all fields are filled"}
         return jsonify(error), 400
     elif User.query.filter_by(email=data["email"]).first() is not None:
         error = {"error": "User with that email already exists"}
         return jsonify(error), 409
     else:
-        usr = User(name=data["name"], email=data["email"],
+        usr = User(name=data["name"], phone=data["phone"], email=data["email"],
                    password=data["password"])
         db.session.add(usr)
         db.session.commit()
