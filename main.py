@@ -1,3 +1,8 @@
+import africastalking
+from werkzeug.security import generate_password_hash, check_password_hash
+from models import db, User, OTP
+from flask import Blueprint, request, jsonify
+import random
 from flask import Flask, jsonify, request
 from datetime import datetime
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
@@ -71,7 +76,7 @@ def register():
         return jsonify(error), 409
     else:
         usr = User(name=data["name"], phone=data["phone"], email=data["email"],
-                   password=data["password"])
+                   password=generate_password_hash(data["password"]))
         db.session.add(usr)
         db.session.commit()
         data["id"] = usr.id
@@ -85,15 +90,12 @@ def login():
     if "email" not in data.keys() or "password" not in data.keys():
         error = {"error": "Ensure all fields are filled"}
         return jsonify(error), 400
-    else:
-        usr = User.query.filter_by(
-            email=data["email"], password=data["password"]).first()
-        if usr is None:
-            error = {"error": "Invalid email or password"}
-            return jsonify(error), 401
-        else:
-            token = create_access_token(identity=data["email"])
-            return jsonify({"token": token}), 200
+    usr = User.query.filter_by(email=data["email"]).first()
+    if not usr or not check_password_hash(usr.password, data["password"]):
+        return jsonify({"error": "Invalid email or password"}), 401
+
+    token = create_access_token(identity=data["email"])
+    return jsonify({"token": token}), 200
 
 
 @app.route("/api/users", methods=["GET"])
@@ -321,7 +323,79 @@ def mpesa_callback():
 #         } for r in results
 #     ])
 
+
+auth = Blueprint('auth', __name__)
+
+# Initialize Africastalking
+username = "YOUR_USERNAME"  # Your Africastalking username
+api_key = "YOUR_API_KEY"    # Your Africastalking API key
+africastalking.initialize(username, api_key)
+sms = africastalking.SMS
+
+
+def send_sms(phone, message):
+    try:
+        response = sms.send(message, [phone])
+        print("SMS sent:", response)
+    except Exception as e:
+        print("SMS failed:", str(e))
+
+
+@auth.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    data = request.get_json()
+    email = data.get('email')
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    otp_code = str(random.randint(1000, 9999))
+    otp = OTP(user_id=user.id, otp=otp_code)
+    db.session.add(otp)
+    db.session.commit()
+
+    send_sms(user.phone, f"Your reset code is {otp_code}")
+
+    return jsonify({
+        "message": "OTP sent",
+        "user_id": user.id
+    }), 200
+
+# verify code
+
+
+@auth.route('/verify-code/<int:user_id>', methods=['POST'])
+def verify_code(user_id):
+    data = request.get_json()
+    code = data.get('otp')
+
+    otp = OTP.query.filter_by(user_id=user_id, otp=code).first()
+    if not otp:
+        return jsonify({"error": "Invalid code"}), 400
+
+    return jsonify({"message": "OTP verified"}), 200
+
+
+# generate password
+
+
+@auth.route('/reset-password/<int:user_id>', methods=['POST'])
+def reset_password(user_id):
+    data = request.get_json()
+    new_password = data.get('password')
+
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    user.password = generate_password_hash(new_password)
+    db.session.commit()
+
+    return jsonify({"message": "Password updated"}), 200
+
+
 if __name__ == "__main__":
+    # at the bottom, before app.run()
+    app.register_blueprint(auth, url_prefix="/auth")
     with app.app_context():
         # db.drop_all()
         db.create_all()
