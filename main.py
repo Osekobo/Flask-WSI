@@ -1,3 +1,4 @@
+from flask_jwt_extended import jwt_required
 import africastalking
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User, OTP
@@ -303,64 +304,107 @@ def mpesa_callback():
     return {"message": "Callback received"}, 200
 
 
-# @app.route("/api/sales/trend")
-# @jwt_required()
-# def sales_trend():
-#     results = (
-#         db.session.query(
-#             func.date(Sale.created_at).label("date"),
-#             func.sum(Sale.quantity).label("total_sales")
-#         )
-#         .group_by(func.date(Sale.created_at))
-#         .order_by(func.date(Sale.created_at))
-#         .all()
-#     )
+@app.route("/api/product-stock-trend", methods=["GET"])
+@jwt_required()
+def product_stock_trend():
+    period = request.args.get("period", "day")  # default to day
+    if period not in ["hour", "day", "week", "month"]:
+        period = "day"
 
-#     return jsonify([
-#         {
-#             "date": r.date.strftime("%Y-%m-%d"),
-#             "total_sales": r.total_sales
-#         } for r in results
-#     ])
+    # Use PostgreSQL date_trunc to group by selected period
+    results = (
+        db.session.query(
+            Product.name,
+            func.date_trunc(period, Purchase.created_at).label("time_period"),
+            func.sum(Purchase.quantity).label("total_quantity")
+        )
+        .join(Purchase, Product.id == Purchase.product_id)
+        .group_by(Product.name, "time_period")
+        .order_by("time_period")
+        .all()
+    )
+
+    data = {}
+    for name, time_period, qty in results:
+        if name not in data:
+            data[name] = []
+        data[name].append({
+            "date": time_period.strftime("%Y-%m-%d %H:%M:%S") if period == "hour" else time_period.strftime("%Y-%m-%d"),
+            "quantity": qty
+        })
+
+    return jsonify(data), 200
 
 
 auth = Blueprint('auth', __name__)
 
-# Initialize Africastalking
-username = "YOUR_USERNAME"  # Your Africastalking username
-api_key = "YOUR_API_KEY"    # Your Africastalking API key
+# Africastalking init
+username = "sandbox"
+
 africastalking.initialize(username, api_key)
 sms = africastalking.SMS
 
 
-def send_sms(phone, message):
-    try:
-        response = sms.send(message, [phone])
-        print("SMS sent:", response)
-    except Exception as e:
-        print("SMS failed:", str(e))
+def format_phone(phone):
+    phone = phone.strip()
+
+    if phone.startswith("0"):
+        phone = "+254" + phone[1:]
+    elif phone.startswith("254"):
+        phone = "+" + phone
+    elif not phone.startswith("+"):
+        phone = "+" + phone
+
+    # Basic length check for Kenya numbers
+    if not phone.startswith("+254") or len(phone) != 13:
+        raise ValueError("Invalid Kenyan phone number")
+
+    return phone
 
 
-@auth.route('/forgot-password', methods=['POST'])
+def generate_otp():
+    return str(random.randint(100000, 999999))
+
+
+@auth.route("/forgot-password", methods=["POST"])
 def forgot_password():
     data = request.get_json()
-    email = data.get('email')
-    user = User.query.filter_by(email=email).first()
+
+    if not data or "phone" not in data:
+        return jsonify({"error": "Phone number is required"}), 400
+
+    phone_raw = data["phone"]
+
+    try:
+        phone = format_phone(phone_raw)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+    # Check if user exists
+    user = User.query.filter_by(phone=phone).first()
     if not user:
         return jsonify({"error": "User not found"}), 404
-    otp_code = str(random.randint(1000, 9999))
-    otp = OTP(user_id=user.id, otp=otp_code)
-    db.session.add(otp)
+
+    # Generate OTP
+    otp_code = generate_otp()
+
+    # Save OTP in the database
+    otp_entry = OTP(user_id=user.id, otp=otp_code)
+    db.session.add(otp_entry)
     db.session.commit()
 
-    send_sms(user.phone, f"Your reset code is {otp_code}")
-
-    return jsonify({
-        "message": "OTP sent",
-        "user_id": user.id
-    }), 200
-
-# verify code
+    # Send SMS
+    # try:
+    #     response = sms.send(f"Your OTP is {otp_code}", [phone])
+    #     print("SMS response:", response)
+    # except Exception as e:
+    #     print("SMS failed:", e)
+    #     return jsonify({"error": "Failed to send SMS"}), 500
+    try:
+        print(f"Simulating sending SMS to {phone} with OTP {otp_code}")
+    except Exception as e:
+        print("SMS failed:", e)
+        return jsonify({"message": "OTP sent successfully"}), 200
 
 
 @auth.route('/verify-code/<int:user_id>', methods=['POST'])
