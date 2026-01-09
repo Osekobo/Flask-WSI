@@ -340,7 +340,7 @@ auth = Blueprint('auth', __name__)
 
 # Africastalking init
 username = "sandbox"
-
+api_key = "atsk_0be4512d5a73da6bad07b94aa50afcea41ca8338a93888a5c129f36e4f99b18ca1e2b4b4"
 africastalking.initialize(username, api_key)
 sms = africastalking.SMS
 
@@ -393,13 +393,7 @@ def forgot_password():
     db.session.add(otp_entry)
     db.session.commit()
 
-    # Send SMS
-    # try:
-    #     response = sms.send(f"Your OTP is {otp_code}", [phone])
-    #     print("SMS response:", response)
-    # except Exception as e:
-    #     print("SMS failed:", e)
-    #     return jsonify({"error": "Failed to send SMS"}), 500
+
     try:
         print(f"Simulating sending SMS to {phone} with OTP {otp_code}")
     except Exception as e:
