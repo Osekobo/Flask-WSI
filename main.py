@@ -212,7 +212,6 @@ def sales():
             for sale_id, grouped in sales_group.items()
             for sale, _, _ in [grouped[0]]
         ]
-        # print("-----------------------------------", sales_group)
         return jsonify(result), 200
     elif request.method == "POST":
         try:
@@ -392,7 +391,6 @@ def forgot_password():
     otp_entry = OTP(user_id=user.id, otp=otp_code)
     db.session.add(otp_entry)
     db.session.commit()
-
 
     try:
         print(f"Simulating sending SMS to {phone} with OTP {otp_code}")
