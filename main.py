@@ -5,7 +5,7 @@ from models import db, User, OTP
 from flask import Blueprint, request, jsonify
 import random
 from flask import Flask, jsonify, request
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 import sentry_sdk
 from models import db, Product, Sale, User, Purchase, SalesDetails
@@ -13,6 +13,8 @@ from sqlalchemy import func
 # from app import app, db
 from flask_cors import CORS
 from collections import defaultdict
+from utils import generate_otp, send_email_brevo, send_sms_brevo, format_phone
+
 
 app = Flask(__name__)
 CORS(app)
@@ -94,7 +96,6 @@ def login():
     usr = User.query.filter_by(email=data["email"]).first()
     if not usr or not check_password_hash(usr.password, data["password"]):
         return jsonify({"error": "Invalid email or password"}), 401
-
     token = create_access_token(identity=data["email"])
     return jsonify({"token": token}), 200
 
@@ -157,7 +158,6 @@ def update_product(id):
     product = Product.query.get(id)
     if not product:
         return jsonify({"error": "Product not found"}), 404
-
     # Update fields if provided
     product.name = data.get("name", product.name)
     product.buying_price = data.get("buying_price", product.buying_price)
@@ -166,9 +166,7 @@ def update_product(id):
     product.year = data.get("year", product.year)
     product.condition = data.get("condition", product.condition)
     product.fuel = data.get("fuel", product.fuel)
-
     db.session.commit()
-
     return jsonify({
         "id": product.id,
         "name": product.name,
@@ -309,8 +307,7 @@ def product_stock_trend():
     period = request.args.get("period", "day")  # default to day
     if period not in ["hour", "day", "week", "month"]:
         period = "day"
-
-    # Use PostgreSQL date_trunc to group by selected period
+    # date_trunc to group by selected period
     results = (
         db.session.query(
             Product.name,
@@ -322,7 +319,6 @@ def product_stock_trend():
         .order_by("time_period")
         .all()
     )
-
     data = {}
     for name, time_period, qty in results:
         if name not in data:
@@ -338,80 +334,95 @@ def product_stock_trend():
 auth = Blueprint('auth', __name__)
 
 # Africastalking init
-username = "sandbox"
-api_key = "atsk_0be4512d5a73da6bad07b94aa50afcea41ca8338a93888a5c129f36e4f99b18ca1e2b4b4"
-africastalking.initialize(username, api_key)
-sms = africastalking.SMS
-
-
-def format_phone(phone):
-    phone = phone.strip()
-
-    if phone.startswith("0"):
-        phone = "+254" + phone[1:]
-    elif phone.startswith("254"):
-        phone = "+" + phone
-    elif not phone.startswith("+"):
-        phone = "+" + phone
-
-    # Basic length check for Kenya numbers
-    if not phone.startswith("+254") or len(phone) != 13:
-        raise ValueError("Invalid Kenyan phone number")
-
-    return phone
-
-
-def generate_otp():
-    return str(random.randint(100000, 999999))
+# username = "sandbox"
+# api_key = "atsk_0be4512d5a73da6bad07b94aa50afcea41ca8338a93888a5c129f36e4f99b18ca1e2b4b4"
+# africastalking.initialize(username, api_key)
+# sms = africastalking.SMS
 
 
 @auth.route("/forgot-password", methods=["POST"])
 def forgot_password():
     data = request.get_json()
+    if not data:
+        return jsonify({"error": "Email or phone is required"}), 400
 
-    if not data or "phone" not in data:
-        return jsonify({"error": "Phone number is required"}), 400
+    user = None
+    contact_type = None
+    # email
+    if "email" in data:
+        email = data["email"].strip().lower()
+        user = User.query.filter_by(email=email).first()
+        contact_type = "email"
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+    # phone
+    elif "phone" in data:
+        phone_raw = data["phone"].strip()
+        try:
+            phone_formatted = format_phone(phone_raw)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
 
-    phone_raw = data["phone"]
+        user = User.query.filter_by(phone=phone_raw).first()
+        contact_type = "phone"
+        if not user:
+            return jsonify({"error": "User not found"}), 404
 
-    try:
-        phone = format_phone(phone_raw)
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
+    else:
+        return jsonify({"error": "Email or phone is required"}), 400
 
-    # Check if user exists
-    user = User.query.filter_by(phone=phone).first()
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-
-    # Generate OTP
+    # remove old OTPs f
+    OTP.query.filter_by(user_id=user.id).delete()
+    db.session.commit()
     otp_code = generate_otp()
 
-    # Save OTP in the database
-    otp_entry = OTP(user_id=user.id, otp=otp_code)
+    # Save OTP
+    otp_entry = OTP(
+        user_id=user.id,
+        otp=otp_code,
+        created_at=datetime.now(timezone.utc)
+    )
     db.session.add(otp_entry)
     db.session.commit()
 
+    # Send OTP by email or SMS
     try:
-        print(f"Simulating sending SMS to {phone} with OTP {otp_code}")
+        if contact_type == "email":
+            send_email_brevo(email=user.email, otp=otp_code)
+            print(f"OTP {otp_code} sent to email {user.email}")
+        elif contact_type == "phone":
+            message = f"Your OTP code is {otp_code}"
+            send_sms_brevo(phone=phone_formatted, message=message)
+            print(f"OTP {otp_code} sent as SMS to {user.phone}")
     except Exception as e:
-        print("SMS failed:", e)
-        return jsonify({"message": "OTP sent successfully"}), 200
+        print("Sending OTP failed:", e)
+        return jsonify({"error": "Failed to send OTP"}), 500
+
+    return jsonify({
+        "message": f"OTP sent successfully via {contact_type}",
+        "user_id": user.id
+    }), 200
 
 
 @auth.route('/verify-code/<int:user_id>', methods=['POST'])
 def verify_code(user_id):
     data = request.get_json()
     code = data.get('otp')
-
-    otp = OTP.query.filter_by(user_id=user_id, otp=code).first()
+    if not code:
+        return jsonify({"error": "OTP code is required"}), 400
+    expiry_time = datetime.now(timezone.utc) - timedelta(minutes=5)
+    otp = OTP.query.filter(
+        OTP.user_id == user_id,
+        OTP.otp == code,
+        OTP.created_at >= expiry_time
+    ).first()
     if not otp:
-        return jsonify({"error": "Invalid code"}), 400
+        return jsonify({"error": "Invalid or expired code"}), 400
+     # delete otp to prevent reuse
+    db.session.delete(otp)
+    db.session.commit()
 
     return jsonify({"message": "OTP verified"}), 200
-
-
-# generate password
 
 
 @auth.route('/reset-password/<int:user_id>', methods=['POST'])
@@ -430,7 +441,6 @@ def reset_password(user_id):
 
 
 if __name__ == "__main__":
-    # at the bottom, before app.run()
     app.register_blueprint(auth, url_prefix="/auth")
     with app.app_context():
         # db.drop_all()
@@ -484,7 +494,6 @@ if __name__ == "__main__":
 # CI/CD PIPELINE -automated process -> develop, test & deploy
 #                -removes manual errors
 #                -comms/feedback to developers
-
 
 #          ELEMENTS OF CI/CD PIPELINE
 # Source stage -> pipeline is triggered by a source code repo
