@@ -6,7 +6,7 @@ import os
 
 
 def generate_otp():
-    return str(random.randint(100000, 999999))
+    return str(random.randint(1000, 9999))
 
 # Format phone
 

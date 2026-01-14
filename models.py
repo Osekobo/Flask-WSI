@@ -83,5 +83,5 @@ class OTP(db.Model):
     __tablename__ = "otps"
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    otp = db.Column(db.String(6), nullable=False)
+    otp = db.Column(db.String(4), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
