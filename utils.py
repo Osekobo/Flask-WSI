@@ -6,7 +6,7 @@ import os
 
 
 def generate_otp():
-    return str(random.randint(1000, 9999))
+    return str(random.randint(100000, 999999))
 
 # Format phone
 
@@ -69,4 +69,3 @@ def send_email_brevo(email, otp):
     if response.status_code not in (200, 201):
         raise Exception(response.text)
     return response.json()
-

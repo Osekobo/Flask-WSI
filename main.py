@@ -14,6 +14,10 @@ from sqlalchemy import func
 from flask_cors import CORS
 from collections import defaultdict
 from utils import generate_otp, send_email_brevo, send_sms_brevo, format_phone
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 
 app = Flask(__name__)
