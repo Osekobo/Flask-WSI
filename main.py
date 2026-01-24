@@ -22,7 +22,7 @@ load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
-# Change this to a random secret key in production
+# Change 
 app.config['JWT_SECRET_KEY'] = 'hgyutd576uyfutu'
 app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:12039@localhost:5432/flask_api"
 
