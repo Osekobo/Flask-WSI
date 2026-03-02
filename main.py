@@ -152,7 +152,6 @@ def products():
         error = {"error": "Method not allowed"}
         return jsonify(error), 405
 
-# update product per id route
 
 
 @app.route("/api/products/<int:id>", methods=["PUT"])
