@@ -2,7 +2,7 @@ import requests
 import random
 import os
 
-# Generate  OTP
+
 
 
 def generate_otp():
