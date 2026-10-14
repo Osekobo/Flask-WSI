@@ -1,10 +1,6 @@
 import requests
 import random
 import os
-
-
-
-
 def generate_otp():
     return str(random.randint(100000, 999999))
 
